@@ -86,13 +86,19 @@ docker-compose restart promethues
 
 ### Integrate Metrics Generator
 
-The gradle plugin can by easily integrated by [Gradle Initialization Scripts](https://docs.gradle.org/current/userguide/init_scripts.html) with Gradle project:
+The gradle plugin can by easily integrated by [Gradle Initialization Scripts](https://docs.gradle.org/current/userguide/init_scripts.html) with Gradle project, just put [init.gradle](https://github.com/johnsonlee/gradle-prometheus-plugin/blob/main/src/main/resources/init.gradle) under one of following directories:
+
+1. *USER_HOME/.gradle/*
+1. *USER_HOME/.gradle/init.d/*
+1. *GRADLE_HOME/init.d/*
+
+Then build gradle project with 2 properties:
+
+1. *redis.host* (default is *127.0.0.1*)
+1. *redis.port* (default is *6379*)
 
 ```bash
-./gradlew \
-    -I https://github.com/johnsonlee/gradle-prometheus-plugin/blob/main/src/main/resources/init.gradle \
-    -Predis.host=192.168.1.5 \
-    assemble
+./gradlew -Predis.host=192.168.1.5 assemble
 ```
 
 After build finished, the metrics is supposed to be put into Redis with key `${project.group}:${project.name}`.
