@@ -74,8 +74,13 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             override fun buildFinished(result: BuildResult) {
                 val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
                 val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
-                Jedis(host, port).use {
-                    it.set("${gradle.rootProject.group}:${gradle.rootProject.name}", registry.toPlainText())
+
+                try {
+                    Jedis(host, port).use {
+                        it.set("${gradle.rootProject.group}:${gradle.rootProject.name}", registry.toPlainText())
+                    }
+                } catch (e: Throwable) {
+                    gradle.rootProject.logger.error(e.message, e)
                 }
             }
 
