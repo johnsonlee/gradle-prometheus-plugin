@@ -1,0 +1,76 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.20'
+    }
+}
+
+group = 'io.johnsonlee.gradle'
+version = '1.0.0'
+
+apply plugin: 'java-library'
+apply plugin: 'maven-publish'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation platform('org.jetbrains.kotlin:kotlin-bom')
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    implementation 'io.prometheus:simpleclient:0.9.0'
+    implementation 'io.prometheus:simpleclient_common:0.9.0'
+    implementation 'redis.clients:jedis:3.5.1'
+}
+
+publishing {
+    repositories {
+        maven {
+            url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")
+        }
+    }
+
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = "${project.group}"
+            artifactId = project.name
+            version = "${project.version}"
+
+
+            pom {
+                name = project.name
+                url = "https://github.com/johnsonlee/${project.name}"
+                description = project.description ?: project.name
+
+                scm {
+                    connection = "scm:git:git://github.com/johnsonlee/${project.name}.git"
+                    developerConnection = "scm:git:git@github.com:johnsonlee/${project.name}.git"
+                    url = "https://github.com/johnsonlee/${project.name}"
+                }
+
+                licenses {
+                    license {
+                        name = "Apache License"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "johnsonlee"
+                        name = "Johnson Lee"
+                        email = "g.johnsonlee@gmail.com"
+                    }
+                }
+            }
+        }
+    }
+}

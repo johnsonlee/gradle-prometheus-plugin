@@ -1,0 +1,14 @@
+version: "3.0"
+
+services:
+  gradle-prometheus-exporter:
+    build:
+      context: .
+    container_name: gradle-prometheus-exporter
+    ports:
+      - "9300:9300"
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_KEY=${REDIS_KEY}
+    restart: always

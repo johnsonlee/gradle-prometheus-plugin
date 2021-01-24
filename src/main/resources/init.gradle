@@ -1,0 +1,13 @@
+import io.johnsonlee.gradle.metrics.GradlePrometheusPlugin
+
+initscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.0.0'
+    }
+}
+
+apply plugin: GradlePrometheusPlugin

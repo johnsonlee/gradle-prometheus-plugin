@@ -1,0 +1,17 @@
+{
+  "name": "gradle-prometheus-exporter",
+  "version": "1.0.0",
+  "description": "Prometheus metrics exporter for Gradle performance monitoring",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "johnsonlee",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.7.2",
+    "koa": "^2.13.1",
+    "koa-bodyparser": "^4.3.0",
+    "redis": "^3.0.2"
+  }
+}
