@@ -80,7 +80,7 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
                         it.set("${gradle.rootProject.group}:${gradle.rootProject.name}", registry.toPlainText())
                     }
                 } catch (e: Throwable) {
-                    gradle.rootProject.logger.error(e.message, e)
+                    gradle.rootProject.logger.warn(e.message)
                 }
             }
 
