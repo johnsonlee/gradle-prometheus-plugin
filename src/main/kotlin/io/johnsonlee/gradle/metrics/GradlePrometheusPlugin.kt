@@ -3,6 +3,8 @@ package io.johnsonlee.gradle.metrics
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.Gauge
 import io.prometheus.client.exporter.common.TextFormat
+import org.codehaus.groovy.runtime.ProcessGroovyMethods.execute
+import org.codehaus.groovy.runtime.ProcessGroovyMethods.getText
 import org.gradle.BuildAdapter
 import org.gradle.BuildResult
 import org.gradle.api.Plugin
@@ -16,6 +18,7 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.TaskState
 import redis.clients.jedis.Jedis
 import java.io.StringWriter
+import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 
 class GradlePrometheusPlugin : Plugin<Gradle> {
@@ -74,10 +77,11 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             override fun buildFinished(result: BuildResult) {
                 val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
                 val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
+                val key = repositoryPath ?: "${gradle.rootProject.group}:${gradle.rootProject.name}"
 
                 try {
                     Jedis(host, port).use {
-                        it.set("${gradle.rootProject.group}:${gradle.rootProject.name}", registry.toPlainText())
+                        it.set(key, registry.toPlainText())
                     }
                 } catch (e: Throwable) {
                     gradle.rootProject.logger.warn(e.message)
@@ -100,6 +104,19 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
 
 }
 
-fun CollectorRegistry.toPlainText(): String = StringWriter().apply {
+internal val repositoryPath: String? by lazy {
+    val repo: String.() -> String = {
+        substringBefore(".git").split('/', ':').filter(String::isNotEmpty).takeLast(2).joinToString(":")
+    }
+    getText(execute("git config --get remote.origin.url"))?.trim()?.takeIf(String::isNotEmpty)?.let {
+        try {
+            URI(it).path.repo()
+        } catch (e: Exception) {
+            it.repo()
+        }
+    }
+}
+
+private fun CollectorRegistry.toPlainText(): String = StringWriter().apply {
     TextFormat.write004(this, metricFamilySamples())
 }.toString()
