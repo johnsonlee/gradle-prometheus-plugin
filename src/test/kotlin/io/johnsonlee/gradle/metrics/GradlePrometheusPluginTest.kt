@@ -1,6 +1,7 @@
 package io.johnsonlee.gradle.metrics
 
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class GradlePrometheusPluginTest {
 

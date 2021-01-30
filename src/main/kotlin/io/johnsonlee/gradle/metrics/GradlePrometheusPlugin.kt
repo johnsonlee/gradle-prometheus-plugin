@@ -17,6 +17,7 @@ import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.TaskState
 import redis.clients.jedis.Jedis
+import java.io.File
 import java.io.StringWriter
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap
 class GradlePrometheusPlugin : Plugin<Gradle> {
 
     override fun apply(gradle: Gradle) {
+        val projectName = repositoryPath
         val registry = CollectorRegistry(true)
         val settingsTime = ConcurrentHashMap<String, Long>()
         val settingsDuration = Gauge.build()
@@ -51,40 +53,39 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
 
             override fun afterExecute(task: Task, state: TaskState) {
                 taskDuration.labels(
-                        gradle.rootProject.name,
+                        projectName,
                         task.path,
                         "${state.failure == null}",
                         "${state.didWork}",
                         "${state.executed}",
                         "${state.noSource}",
                         "${state.skipped}",
-                        state.skipMessage ?: "",
+                        (state.skipMessage ?: ""),
                         "${state.upToDate}"
                 ).set((System.currentTimeMillis() - taskTime[task.path]!!).toDouble())
             }
         })
         gradle.addBuildListener(object : BuildAdapter() {
             override fun beforeSettings(settings: Settings) {
-                settingsTime[settings.rootProject.path] = System.currentTimeMillis()
+                settingsTime[projectName] = System.currentTimeMillis()
             }
 
             override fun settingsEvaluated(settings: Settings) {
                 settingsDuration
-                        .labels(settings.rootProject.path)
-                        .set((System.currentTimeMillis() - settingsTime[settings.rootProject.path]!!).toDouble())
+                        .labels(projectName)
+                        .set((System.currentTimeMillis() - settingsTime[projectName]!!).toDouble())
             }
 
             override fun buildFinished(result: BuildResult) {
-                val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
-                val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
-                val key = repositoryPath ?: "${gradle.rootProject.group}:${gradle.rootProject.name}"
-
                 try {
+                    val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
+                    val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
+
                     Jedis(host, port).use {
-                        it.set(key, registry.toPlainText())
+                        it.set(projectName, registry.toPlainText())
                     }
                 } catch (e: Throwable) {
-                    gradle.rootProject.logger.warn(e.message)
+                    System.err.println(e.message)
                 }
             }
 
@@ -104,7 +105,7 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
 
 }
 
-internal val repositoryPath: String? by lazy {
+internal val repositoryPath: String by lazy {
     val repo: String.() -> String = {
         substringBefore(".git").split('/', ':').filter(String::isNotEmpty).takeLast(2).joinToString(":")
     }
@@ -114,7 +115,7 @@ internal val repositoryPath: String? by lazy {
         } catch (e: Exception) {
             it.repo()
         }
-    }
+    } ?: File(System.getProperty("user.dir")).name
 }
 
 private fun CollectorRegistry.toPlainText(): String = StringWriter().apply {
