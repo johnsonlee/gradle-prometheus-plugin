@@ -2,8 +2,8 @@ import io.johnsonlee.gradle.metrics.GradlePrometheusPlugin
 
 initscript {
     repositories {
-        google()
         jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.2.0'
