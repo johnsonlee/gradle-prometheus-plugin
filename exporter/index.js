@@ -37,7 +37,7 @@ app.use(bodyParser({
             ctx.throw(e);
         });
     } else {
-        ctx.body = await client.getAsync(process.env.REDIS_KEY);
+        ctx.body = (await client.getAsync(process.env.REDIS_KEY)) || "";
     }
 });
 
