@@ -43,7 +43,7 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
         val evaluationDuration = Gauge.build()
                 .name("gradle_project_evaluation_duration_ms")
                 .help("Gradle project evaluation duration in millis")
-                .labelNames("project", "executed", "status")
+                .labelNames("project", "path", "executed", "status")
                 .register(registry)
 
         gradle.addListener(object : TaskExecutionListener {
@@ -102,7 +102,7 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
 
             override fun afterEvaluate(project: Project, state: ProjectState) {
                 evaluationDuration
-                        .labels(project.path, "${state.executed}", "${state.failure == null}")
+                        .labels(projectName, project.path, "${state.executed}", "${state.failure == null}")
                         .set((System.currentTimeMillis() - evaluationTime[project.path]!!).toDouble())
             }
         })
