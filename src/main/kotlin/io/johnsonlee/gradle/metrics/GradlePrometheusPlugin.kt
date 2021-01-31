@@ -66,6 +66,11 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             }
         })
         gradle.addBuildListener(object : BuildAdapter() {
+            // fix compatibility issue of Gradle
+            init {
+                settingsTime[projectName] = System.currentTimeMillis()
+            }
+
             override fun beforeSettings(settings: Settings) {
                 settingsTime[projectName] = System.currentTimeMillis()
             }
