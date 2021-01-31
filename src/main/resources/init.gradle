@@ -6,7 +6,7 @@ initscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.3.0'
+        classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.4.0'
     }
 }
 
