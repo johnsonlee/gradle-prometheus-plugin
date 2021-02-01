@@ -4,9 +4,12 @@ initscript {
     repositories {
         jcenter()
         mavenCentral()
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/public'
+        }
     }
     dependencies {
-        classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.4.0'
+        classpath 'io.johnsonlee.gradle:gradle-prometheus-plugin:1.5.0'
     }
 }
 
