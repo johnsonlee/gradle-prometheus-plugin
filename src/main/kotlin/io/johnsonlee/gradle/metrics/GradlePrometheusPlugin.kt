@@ -45,6 +45,11 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
                 .help("Gradle project evaluation duration in millis")
                 .labelNames("project", "path", "executed", "status")
                 .register(registry)
+        val buildDuration = Gauge.build()
+                .name("gradle_build_duration_ms")
+                .help("Gradle build duration in millis")
+                .labelNames("project", "tasks", "status")
+                .register(registry)
 
         gradle.addListener(object : TaskExecutionListener {
             override fun beforeExecute(task: Task) {
@@ -82,6 +87,10 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             }
 
             override fun buildFinished(result: BuildResult) {
+                buildDuration
+                        .labels(projectName, gradle.startParameter.taskNames.distinct().joinToString(","), "${result.failure == null}")
+                        .set((System.currentTimeMillis() - settingsTime[projectName]!!).toDouble())
+
                 try {
                     val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
                     val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
