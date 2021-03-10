@@ -25,9 +25,6 @@ dependencies {
     implementation(gradleApi())
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("io.prometheus:simpleclient:0.9.0")
-    implementation("io.prometheus:simpleclient_common:0.9.0")
-    implementation("redis.clients:jedis:3.5.1")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 }

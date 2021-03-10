@@ -1,14 +1,14 @@
-FROM arm64v8/node:8-alpine
+FROM node:alpine
 
 WORKDIR /app
 
-COPY ./package.json ./index.js ./
+ADD ./package.json      ./
+ADD ./package-lock.json ./
+ADD ./tsconfig.json     ./
+ADD ./src               ./src
 
-RUN apk add --update --no-cache --allow-untrusted --virtual .yarn yarn \
-	&& yarn install \
-	&& apk del .yarn
+RUN npm install
 
-EXPOSE 9300
+EXPOSE 3000
 
 CMD ["npm", "start"]
-

@@ -1,8 +1,5 @@
 package io.johnsonlee.gradle.metrics
 
-import io.prometheus.client.CollectorRegistry
-import io.prometheus.client.Gauge
-import io.prometheus.client.exporter.common.TextFormat
 import org.codehaus.groovy.runtime.ProcessGroovyMethods.execute
 import org.codehaus.groovy.runtime.ProcessGroovyMethods.getText
 import org.gradle.BuildAdapter
@@ -16,40 +13,27 @@ import org.gradle.api.execution.TaskExecutionListener
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.TaskState
-import redis.clients.jedis.Jedis
 import java.io.File
-import java.io.StringWriter
+import java.net.HttpURLConnection
 import java.net.URI
+import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+
+const val METRICS_ENDPOINT = "metrics.endpoint"
 
 class GradlePrometheusPlugin : Plugin<Gradle> {
 
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    @Suppress("RemoveCurlyBracesFromTemplate")
     override fun apply(gradle: Gradle) {
         val projectName = repositoryPath
-        val registry = CollectorRegistry(true)
         val settingsTime = ConcurrentHashMap<String, Long>()
-        val settingsDuration = Gauge.build()
-                .name("gradle_settings_duration_ms")
-                .help("Gradle settings duration in millis")
-                .labelNames("project")
-                .register(registry)
         val taskTime = ConcurrentHashMap<String, Long>()
-        val taskDuration = Gauge.build()
-                .name("gradle_task_execution_duration_ms")
-                .help("Task execution duration in millis")
-                .labelNames("project", "path", "status", "didWork", "executed", "noSource", "skipped", "skipMessage", "upToDate")
-                .register(registry)
         val evaluationTime = ConcurrentHashMap<String, Long>()
-        val evaluationDuration = Gauge.build()
-                .name("gradle_project_evaluation_duration_ms")
-                .help("Gradle project evaluation duration in millis")
-                .labelNames("project", "path", "executed", "status")
-                .register(registry)
-        val buildDuration = Gauge.build()
-                .name("gradle_build_duration_ms")
-                .help("Gradle build duration in millis")
-                .labelNames("project", "tasks", "status")
-                .register(registry)
 
         gradle.addListener(object : TaskExecutionListener {
             override fun beforeExecute(task: Task) {
@@ -57,17 +41,24 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             }
 
             override fun afterExecute(task: Task, state: TaskState) {
-                taskDuration.labels(
-                        projectName,
-                        task.path,
-                        "${state.failure == null}",
-                        "${state.didWork}",
-                        "${state.executed}",
-                        "${state.noSource}",
-                        "${state.skipped}",
-                        (state.skipMessage ?: ""),
-                        "${state.upToDate}"
-                ).set((System.currentTimeMillis() - taskTime[task.path]!!).toDouble())
+                val durationInMs = (System.currentTimeMillis() - taskTime[task.path]!!).toDouble()
+                executor.execute {
+                    post("""{
+                        |    "metric": "gradle_task_execution_duration_ms",
+                        |    "labels": {
+                        |        "project": "${projectName}",
+                        |        "path": "${task.path}",
+                        |        "status": "${state.failure == null}",
+                        |        "didWork": "${state.didWork}",
+                        |        "executed": "${state.executed}",
+                        |        "noSource": "${state.noSource}",
+                        |        "skipped": "${state.skipped}",
+                        |        "skipMessage": "${(state.skipMessage ?: "")}",
+                        |        "upToDate": "${state.upToDate}"
+                        |    },
+                        |    "value": ${durationInMs}
+                        |}""".trimMargin())
+                }
             }
         })
         gradle.addBuildListener(object : BuildAdapter() {
@@ -81,25 +72,30 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             }
 
             override fun settingsEvaluated(settings: Settings) {
-                settingsDuration
-                        .labels(projectName)
-                        .set((System.currentTimeMillis() - settingsTime[projectName]!!).toDouble())
+                val durationInMs = (System.currentTimeMillis() - settingsTime[projectName]!!).toDouble()
+                executor.execute {
+                    post("""{
+                        |    "metric": "gradle_settings_duration_ms",
+                        |    "labels": {
+                        |        "project": "${projectName}"
+                        |    },
+                        |    "value": ${durationInMs}
+                        |}""".trimMargin())
+                }
             }
 
             override fun buildFinished(result: BuildResult) {
-                buildDuration
-                        .labels(projectName, gradle.startParameter.taskNames.distinct().joinToString(","), "${result.failure == null}")
-                        .set((System.currentTimeMillis() - settingsTime[projectName]!!).toDouble())
-
-                try {
-                    val host = gradle.rootProject.findProperty("redis.host")?.toString() ?: "127.0.0.1"
-                    val port = gradle.rootProject.findProperty("redis.port")?.toString()?.toInt() ?: 6379
-
-                    Jedis(host, port).use {
-                        it.set(projectName, registry.toPlainText())
-                    }
-                } catch (e: Throwable) {
-                    System.err.println(e.message)
+                val durationInMs = (System.currentTimeMillis() - settingsTime[projectName]!!).toDouble()
+                executor.execute {
+                    post("""{
+                        |    "metric": "gradle_build_duration_ms",
+                        |    "labels": {
+                        |        "project": "${projectName}",
+                        |        "tasks": "${gradle.startParameter.taskNames.distinct().joinToString(",")}",
+                        |        "status": "${result.failure == null}"
+                        |    },
+                        |    "value": ${durationInMs}
+                        |}""".trimMargin())
                 }
             }
 
@@ -110,9 +106,19 @@ class GradlePrometheusPlugin : Plugin<Gradle> {
             }
 
             override fun afterEvaluate(project: Project, state: ProjectState) {
-                evaluationDuration
-                        .labels(projectName, project.path, "${state.executed}", "${state.failure == null}")
-                        .set((System.currentTimeMillis() - evaluationTime[project.path]!!).toDouble())
+                val durationInMs = (System.currentTimeMillis() - evaluationTime[project.path]!!).toDouble()
+                executor.execute {
+                    post("""{
+                        |    "metric": "gradle_project_evaluation_duration_ms",
+                        |    "labels": {
+                        |        "project": "${projectName}",
+                        |        "path": "${project.path}",
+                        |        "executed": "${state.executed}",
+                        |        "status": "${state.failure == null}"
+                        |    },
+                        |    "value": ${durationInMs}
+                        |}""".trimMargin())
+                }
             }
         })
     }
@@ -132,6 +138,17 @@ internal val repositoryPath: String by lazy {
     } ?: File(System.getProperty("user.dir")).name
 }
 
-private fun CollectorRegistry.toPlainText(): String = StringWriter().apply {
-    TextFormat.write004(this, metricFamilySamples())
-}.toString()
+internal fun post(json: String) {
+    val url = System.getenv("METRICS_ENDPOINT") ?: return
+    (URL(url).openConnection() as HttpURLConnection).run {
+        connectTimeout = 10_000
+        readTimeout = 10_000
+        requestMethod = "POST"
+        setRequestProperty("Content-Type", "application/json; charset=utf-8")
+        setRequestProperty("Accept", "application/json")
+        doOutput = true
+        doInput = true
+        outputStream.write(json.toByteArray(StandardCharsets.UTF_8))
+        disconnect()
+    }
+}

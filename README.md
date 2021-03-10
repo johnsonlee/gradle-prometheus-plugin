@@ -33,31 +33,7 @@ Using this project, we can build a pretty dashboard:
 The metrics exporter can be easily start by the following command:
 
 ```bash
-cd exporter && docker-compose up -d \
-    -e REDIS_HOST=<redis-host> \
-    -e REDIS_PORT=<redis-port> \
-    -e REDIS_KEY=${groupId}:${artifactId}
-```
-
-For example:
-
-```bash
-cd exporter && docker-compose up -d \
-    -e REDIS_HOST=192.168.1.5 \
-    -e REDIS_PORT=6379 \
-    -e REDIS_KEY=io.johnsonlee.gradle:gradle-prometheus-plugin
-```
-
-> The default value of `REDIS_HOST` is `127.0.0.1` 
->
-> The default value of `REDIS_PORT` is `6379`
-
-You can put the environment variables into `.env` file with `docker-compose.yml`:
-
-```
-REDIS_HOST=192.168.1.5
-REDIS_PORT=6379
-REDIS_KEY=io.johnsonlee.gradle:gradle-prometheus-plugin
+cd exporter && docker-compose up -d
 ```
 
 ### Publish Metrics Exporter
@@ -92,16 +68,17 @@ The gradle plugin can by easily integrated by [Gradle Initialization Scripts](ht
 1. *USER_HOME/.gradle/init.d/*
 1. *GRADLE_HOME/init.d/*
 
-Then build gradle project with 2 properties:
-
-1. *redis.host* (default is *127.0.0.1*)
-1. *redis.port* (default is *6379*)
+Then set environment variable `METRICS_ENDPOINT`:
 
 ```bash
-./gradlew -Predis.host=192.168.1.5 assemble
+export METRICS_ENDPOINT=http://localhost:3000/metrics
 ```
 
-After build finished, the metrics is supposed to be put into Redis with key `${git-repo-owner}:${project.name}`.
+```bash
+./gradlew assemble
+```
+
+After build finished, check the metrics from `${METRICS_ENDPOINT}`, e.g. http://localhost:3000/metrics.
 
 ### Create Dashboard for Gradle Metrics
 
