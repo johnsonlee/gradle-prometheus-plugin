@@ -68,17 +68,19 @@ The gradle plugin can by easily integrated by [Gradle Initialization Scripts](ht
 1. *USER_HOME/.gradle/init.d/*
 1. *GRADLE_HOME/init.d/*
 
-Then set environment variable `METRICS_ENDPOINT`:
+Then config system property `metrics.endpoint` in `gradle.properties`:
 
-```bash
-export METRICS_ENDPOINT=http://localhost:3000/metrics
+```properties
+systemProp.metrics.endpoint=http://localhost:3000/metrics
 ```
 
+Then build your project:
+
 ```bash
-./gradlew assemble
+./gradlew build
 ```
 
-After build finished, check the metrics from `${METRICS_ENDPOINT}`, e.g. http://localhost:3000/metrics.
+After build finished, check the metrics from http://localhost:3000/metrics
 
 ### Create Dashboard for Gradle Metrics
 

@@ -13,7 +13,9 @@ import org.gradle.api.execution.TaskExecutionListener
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.TaskState
+import org.gradle.internal.io.NullOutputStream
 import java.io.File
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
@@ -139,7 +141,7 @@ internal val repositoryPath: String by lazy {
 }
 
 internal fun post(json: String) {
-    val url = System.getenv("METRICS_ENDPOINT") ?: return
+    val url = System.getProperty(METRICS_ENDPOINT) ?: return
     (URL(url).openConnection() as HttpURLConnection).run {
         connectTimeout = 10_000
         readTimeout = 10_000
@@ -149,6 +151,8 @@ internal fun post(json: String) {
         doOutput = true
         doInput = true
         outputStream.write(json.toByteArray(StandardCharsets.UTF_8))
+        inputStream.copyTo(NullOutputStream())
         disconnect()
     }
 }
+
