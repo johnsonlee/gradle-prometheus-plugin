@@ -30,13 +30,21 @@ Using this project, we can build a pretty dashboard:
 
 ### Start Metrics Exporter
 
-The metrics exporter can be easily start by the following command:
+The metrics exporter can be easily started from local:
 
 ```bash
 cd exporter && docker-compose up -d
 ```
 
-### Publish Metrics Exporter
+or started from docker hub
+
+```bash
+docker run -p 9300:3000 johnsonlee/gradle-prometheus-exporter
+```
+
+Then check the metrics exporter by accessing: http://localhost:9300/metrics
+
+### Integrate Metrics Exporter with Prometheus
 
 To make the metrics exporter service discoverable by Prometheus service, you have to update [prometheus.yml](https://github.com/johnsonlee/dockerify/blob/main/prometheus/prometheus.yml):
 
@@ -60,7 +68,7 @@ After updated, restart prometheus service by executing the following command:
 docker-compose restart promethues
 ```
 
-### Integrate Metrics Generator
+### Integrate with Metrics Generator
 
 The gradle plugin can by easily integrated by [Gradle Initialization Scripts](https://docs.gradle.org/current/userguide/init_scripts.html) with Gradle project, just put [init.gradle](https://github.com/johnsonlee/gradle-prometheus-plugin/blob/main/src/main/resources/init.gradle) under one of following directories:
 
