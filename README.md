@@ -79,7 +79,7 @@ The gradle plugin can by easily integrated by [Gradle Initialization Scripts](ht
 Then config system property `metrics.endpoint` in `gradle.properties`:
 
 ```properties
-systemProp.metrics.endpoint=http://localhost:3000/metrics
+systemProp.metrics.endpoint=http://localhost:9300/metrics
 ```
 
 Then build your project:
@@ -88,7 +88,7 @@ Then build your project:
 ./gradlew build
 ```
 
-After build finished, check the metrics from http://localhost:3000/metrics
+After build finished, check the metrics from http://localhost:9300/metrics
 
 ### Create Dashboard for Gradle Metrics
 
